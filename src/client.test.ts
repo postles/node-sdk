@@ -68,7 +68,11 @@ describe("transactional.send", () => {
 
     const result = await client(fetch).transactional.send(request)
 
-    expect(result).toEqual({ message_id: "msg_1", state: "queued" })
+    expect(result).toEqual({
+      message_id: "msg_1",
+      state: "queued",
+      idempotency_key: "app-pwreset-8f3a2c",
+    })
     expect(calls).toHaveLength(1)
     expect(calls[0]!.url).toBe("https://api.postles.com/v1/send")
     expect(calls[0]!.method).toBe("POST")
@@ -122,6 +126,39 @@ describe("transactional.send", () => {
     expect(calls.map((call) => call.body)).toEqual(requests)
   })
 
+  it("generates an idempotency_key when omitted and returns the one used", async () => {
+    const { fetch, calls } = recorder(() =>
+      jsonResponse({ message_id: "msg_gen", state: "queued" }, 202),
+    )
+    const result = await client(fetch).transactional.send({
+      channel: "email",
+      to: { email: "a@example.com" },
+      content: { pre_rendered: true, html: "<p>hi</p>" },
+    })
+    const sentKey = (calls[0]!.body as { idempotency_key?: string })
+      .idempotency_key
+    expect(typeof sentKey).toBe("string")
+    expect(sentKey).toBeTruthy()
+    expect(result.idempotency_key).toBe(sentKey)
+    expect(result.message_id).toBe("msg_gen")
+  })
+
+  it("keeps a caller-supplied idempotency_key as-is", async () => {
+    const { fetch, calls } = recorder(() =>
+      jsonResponse({ message_id: "m", state: "queued" }, 202),
+    )
+    const result = await client(fetch).transactional.send({
+      idempotency_key: "mine-123",
+      channel: "email",
+      to: { email: "a@example.com" },
+      content: { pre_rendered: true, html: "<p>hi</p>" },
+    })
+    expect(
+      (calls[0]!.body as { idempotency_key: string }).idempotency_key,
+    ).toBe("mine-123")
+    expect(result.idempotency_key).toBe("mine-123")
+  })
+
   it("normalizes a trailing slash on the base URL", async () => {
     const { fetch, calls } = recorder(() =>
       jsonResponse({ message_id: "m", state: "queued" }, 202),
@@ -168,6 +205,23 @@ describe("transactional.sendBatch", () => {
     expect(calls[0]!.method).toBe("POST")
     expect(result.results).toHaveLength(2)
     expect(result.results[1]!.status).toBe("rejected")
+  })
+
+  it("fills a generated idempotency_key on batch items that omit one", async () => {
+    const { fetch, calls } = recorder(() => jsonResponse({ results: [] }, 202))
+    await client(fetch).transactional.sendBatch({
+      channel: "email",
+      content: { template: "digest" },
+      messages: [
+        { to: { email: "a@example.com" } },
+        { idempotency_key: "b", to: { email: "b@example.com" } },
+      ],
+    })
+    const sent = calls[0]!.body as {
+      messages: Array<{ idempotency_key?: string }>
+    }
+    expect(sent.messages[0]!.idempotency_key).toBeTruthy()
+    expect(sent.messages[1]!.idempotency_key).toBe("b")
   })
 })
 

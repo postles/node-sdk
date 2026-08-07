@@ -24,10 +24,11 @@ const postles = new PostlesClient({
   apiKey: process.env.POSTLES_API_KEY!, // a secret key (sk_…)
 })
 
-// Send one message. Idempotent on `idempotency_key` — derive it from a domain
-// event id so retries collapse onto the same message instead of sending twice.
-const { message_id } = await postles.transactional.send({
-  idempotency_key: idempotencyKey("password-reset", user.id),
+// Send one message. `idempotency_key` is optional — pass one derived from a
+// domain event id when you want retries to collapse onto the same message;
+// omit it and the SDK generates one for you (returned as `idempotency_key`).
+const { message_id, idempotency_key } = await postles.transactional.send({
+  idempotency_key: idempotencyKey("password-reset", user.id), // optional
   channel: "email",
   stream: "transactional",
   to: { email: "user@example.com", locale: "en" },
@@ -56,6 +57,14 @@ inherits the defaults unless it overrides them (`user`/`metadata` shallow-merge,
 message keys win). Results are returned in input order with a per-item status
 (`queued` / `replayed` / `rejected`), so a single bad recipient does not fail the
 whole batch.
+
+#### Idempotency
+
+`idempotency_key` is optional. Omit it and the SDK generates one per call and
+returns it on the result (`send`) or in each item's result (`sendBatch`), so you
+can always store or correlate it. A generated key is unique per call, so it does
+**not** dedupe retries — when you need retry-safety, pass your own stable key
+(e.g. via `idempotencyKey(...)` derived from a domain event id).
 
 #### Content
 

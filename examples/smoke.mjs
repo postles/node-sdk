@@ -61,9 +61,9 @@ try {
     apiKey: "sk_smoke_test",
   })
 
-  // 1) Send a single message.
+  // 1) Send a single message with no idempotency_key — the SDK generates one
+  //    and returns it.
   const accepted = await postles.transactional.send({
-    idempotency_key: idempotencyKey("smoke", "welcome", 1),
     channel: "email",
     stream: "transactional",
     to: { email: "sink@example.com" },
@@ -71,7 +71,10 @@ try {
   })
   assert.equal(accepted.state, "queued")
   assert.ok(accepted.message_id)
-  console.log(`  ✓ send -> ${accepted.message_id} (${accepted.state})`)
+  assert.ok(accepted.idempotency_key)
+  console.log(
+    `  ✓ send -> ${accepted.message_id} (${accepted.state}), key ${accepted.idempotency_key}`,
+  )
 
   // 2) Fetch its state.
   const message = await postles.transactional.getMessage(accepted.message_id)

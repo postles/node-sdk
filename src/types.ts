@@ -109,8 +109,13 @@ export type Content = TemplateContent | InlineContent | PreRenderedContent
 
 /** Fields shared by every single-send request, independent of channel. */
 export interface SendRequestBase {
-  /** Required; unique per project. A replay returns the existing message. */
-  idempotency_key: string
+  /**
+   * Optional; unique per project. If omitted, the SDK generates one and returns
+   * it on the result. Pass your own — derived from a domain event id via
+   * {@link idempotencyKey} — when you need retry-safety, since a generated key is
+   * unique per call and so does not dedupe retries.
+   */
+  idempotency_key?: string
   /** Optional; defaults to the project's default provider for the channel. */
   provider_id?: number
   stream?: Stream
@@ -159,7 +164,8 @@ export type SendRequest =
  * defaults, so `channel` is optional and the recipient is the generic shape.
  */
 export interface BatchMessage {
-  idempotency_key: string
+  /** Optional; the SDK fills any omitted key with a generated one before sending. */
+  idempotency_key?: string
   to: Recipient
   channel?: Channel
   provider_id?: number
@@ -189,6 +195,15 @@ export interface BatchSendRequest {
 export interface SendAccepted {
   message_id: string
   state: MessageState
+}
+
+/**
+ * What {@link TransactionalApi.send} resolves to: the API response plus the
+ * `idempotency_key` used for the send — the one you passed, or the one the SDK
+ * generated for you — so it can always be stored or correlated later.
+ */
+export interface SendResult extends SendAccepted {
+  idempotency_key: string
 }
 
 export type BatchItemStatus = "queued" | "replayed" | "rejected"
