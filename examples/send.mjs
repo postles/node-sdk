@@ -12,7 +12,11 @@ import { PostlesClient, idempotencyKey } from "../dist/index.js"
 const baseUrl = process.env.POSTLES_BASE_URL
 const apiKey = process.env.POSTLES_API_KEY
 const to = process.env.POSTLES_TO ?? "sink@example.com"
-const providerId = process.env.POSTLES_PROVIDER_ID
+const providerIdRaw = process.env.POSTLES_PROVIDER_ID
+const providerId =
+  providerIdRaw && Number.isFinite(Number(providerIdRaw))
+    ? Number(providerIdRaw)
+    : undefined
 
 if (!baseUrl || !apiKey) {
   console.error("Set POSTLES_BASE_URL and POSTLES_API_KEY to run this example.")
@@ -25,7 +29,7 @@ const accepted = await postles.transactional.send({
   idempotency_key: idempotencyKey("example-send", Date.now()),
   channel: "email",
   stream: "transactional",
-  provider_id: providerId ? Number(providerId) : undefined,
+  provider_id: providerId,
   to: { email: to },
   content: {
     pre_rendered: true,

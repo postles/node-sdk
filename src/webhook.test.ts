@@ -139,6 +139,16 @@ describe("verifyWebhookSignature", () => {
       }),
     ).toBe(false)
   })
+
+  it("returns false when the signature or secret is absent", () => {
+    const signature = sign(body, SECRET, TIMESTAMP)
+    expect(
+      verifyWebhookSignature({ payload: body, secret: SECRET, nowMs: NOW_MS }),
+    ).toBe(false)
+    expect(
+      verifyWebhookSignature({ payload: body, signature, nowMs: NOW_MS }),
+    ).toBe(false)
+  })
 })
 
 describe("verifyWebhook", () => {

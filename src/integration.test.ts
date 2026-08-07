@@ -18,7 +18,11 @@ import { type MessageState } from "./types"
  */
 const baseUrl = process.env.POSTLES_BASE_URL
 const apiKey = process.env.POSTLES_API_KEY
-const providerId = process.env.POSTLES_PROVIDER_ID
+const providerIdRaw = process.env.POSTLES_PROVIDER_ID
+const providerId =
+  providerIdRaw && Number.isFinite(Number(providerIdRaw))
+    ? Number(providerIdRaw)
+    : undefined
 const testEmail = process.env.POSTLES_TEST_EMAIL ?? "sink@example.com"
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -31,7 +35,7 @@ describe.skipIf(!baseUrl || !apiKey)("PostlesClient integration", () => {
       idempotency_key: idempotencyKey("postles-node-it", Date.now()),
       channel: "email",
       stream: "transactional",
-      provider_id: providerId ? Number(providerId) : undefined,
+      provider_id: providerId,
       to: { email: testEmail },
       content: {
         pre_rendered: true,

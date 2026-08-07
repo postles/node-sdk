@@ -18,10 +18,13 @@ export class WebhookVerificationError extends Error {
 export interface VerifyWebhookOptions {
   /** The exact raw request body bytes, before any JSON parsing. */
   payload: string | Buffer | Uint8Array
-  /** The `X-Postles-Signature` header value. */
-  signature: string
-  /** The signing secret configured for the webhook endpoint. */
-  secret: string
+  /**
+   * The `X-Postles-Signature` header value. Optional because framework header
+   * types are usually `string | undefined`; a missing value fails verification.
+   */
+  signature?: string
+  /** The signing secret for the webhook endpoint. A missing value fails verification. */
+  secret?: string
   /** Freshness window in seconds; defaults to {@link DEFAULT_TOLERANCE_SECONDS}. */
   toleranceSeconds?: number
   /** Current time in epoch milliseconds; defaults to `Date.now()`. Injectable for tests. */
@@ -99,12 +102,11 @@ export const verifyWebhookSignature = (
   const skewSeconds = Math.abs(nowMs / 1000 - parsed.timestamp)
   if (skewSeconds > toleranceSeconds) return false
 
-  const signedPayload = Buffer.concat([
-    Buffer.from(`${parsed.timestamp}.`, "utf8"),
-    toBuffer(payload),
-  ])
+  // Two updates (prefix, then payload) avoid copying the whole body into a
+  // concatenated buffer before hashing.
   const expected = createHmac("sha256", secret)
-    .update(signedPayload)
+    .update(`${parsed.timestamp}.`)
+    .update(toBuffer(payload))
     .digest("hex")
 
   return parsed.signatures.some((candidate) => hexEquals(expected, candidate))

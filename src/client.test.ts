@@ -8,7 +8,7 @@ import {
   PostlesRateLimitError,
   PostlesValidationError,
 } from "./errors"
-import { type SendRequest } from "./types"
+import { type Content, type SendRequest } from "./types"
 
 interface Recorded {
   url: string
@@ -50,6 +50,17 @@ const client = (
   fetchImpl: typeof globalThis.fetch,
   baseUrl = "https://api.postles.com/v1",
 ) => new PostlesClient({ baseUrl, apiKey: "sk_test_123", fetch: fetchImpl })
+
+describe("Content typing", () => {
+  it("rejects mixing a template with inline / pre-rendered content at compile time", () => {
+    // @ts-expect-error template content cannot also carry inline fields
+    const withInline: Content = { template: "welcome", subject: "hi" }
+    // @ts-expect-error template content cannot be pre-rendered
+    const withPreRendered: Content = { template: "welcome", pre_rendered: true }
+    expect(withInline).toBeTruthy()
+    expect(withPreRendered).toBeTruthy()
+  })
+})
 
 describe("transactional.send", () => {
   it("posts the request verbatim with auth and content headers", async () => {

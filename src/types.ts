@@ -80,6 +80,8 @@ export interface Recipient extends RecipientBase {
 export interface TemplateContent {
   template: string
   locale?: string
+  /** Disjointness marker: template content is never pre-rendered. */
+  pre_rendered?: never
 }
 
 /**
@@ -91,6 +93,8 @@ export interface TemplateContent {
  * send it as-is (no compilation) — e.g. when you have already rendered the HTML.
  */
 export interface InlineContent {
+  /** Disjointness marker: inline content does not carry a template key. */
+  template?: never
   /** When true, send the content as-is without Handlebars compilation. Defaults to false. */
   pre_rendered?: boolean
   subject?: string
