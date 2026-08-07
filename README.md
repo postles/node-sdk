@@ -109,6 +109,30 @@ Non-2xx responses throw a `PostlesError` subclass: `PostlesValidationError`
 (422/413), `PostlesRateLimitError` (429, with `retryAfterSeconds`),
 `PostlesAuthError` (401/403), `PostlesNotFoundError` (404).
 
+## Validating the library
+
+Two ways to check the SDK works, depending on whether you have credentials.
+
+**No account needed** — an end-to-end smoke check runs the built client against
+an in-process mock of the API (send, batch, message lookup, webhook verify):
+
+```sh
+npm install
+npm run smoke
+```
+
+**Against the real API** — send a message with your own key and watch its state:
+
+```sh
+POSTLES_BASE_URL=https://api.postles.com/v1 \
+POSTLES_API_KEY=sk_... \
+POSTLES_TO=you@example.com \
+npm run example:send
+```
+
+The same credentials enable the live integration test in
+`src/integration.test.ts` (skipped otherwise).
+
 ## Development
 
 ```sh
@@ -119,8 +143,21 @@ npm test           # vitest
 npm run format
 ```
 
-The integration test in `src/integration.test.ts` is skipped unless
-`POSTLES_BASE_URL` and `POSTLES_API_KEY` are set.
+CI (`.github/workflows/ci.yml`) runs format-check, typecheck, tests, and build on
+Node 18 and 20 for every push and pull request to `main`.
+
+## Releasing
+
+Publishing is automated (`.github/workflows/publish.yml`): push a `vX.Y.Z` tag and
+the workflow builds and publishes `@postles/node` to npm.
+
+```sh
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The repo needs an `NPM_TOKEN` secret (an npm automation token with publish access
+to the `@postles` scope).
 
 ## License
 
