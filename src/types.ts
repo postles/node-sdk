@@ -83,11 +83,16 @@ export interface TemplateContent {
 }
 
 /**
- * Inline channel-shaped Handlebars content; variables come from `user` (`{{user.*}}`).
- * Shape varies by channel (email → subject/html/text/from; text → text;
- * push → title/body/custom; webhook → method/headers/body).
+ * Inline content; variables come from `user` (`{{user.*}}`). Shape varies by
+ * channel (email → subject/html/text/from; text → text; push → title/body/custom;
+ * webhook → method/headers/body).
+ *
+ * By default the content is compiled as Handlebars. Set `pre_rendered: true` to
+ * send it as-is (no compilation) — e.g. when you have already rendered the HTML.
  */
 export interface InlineContent {
+  /** When true, send the content as-is without Handlebars compilation. Defaults to false. */
+  pre_rendered?: boolean
   subject?: string
   html?: string
   text?: string
@@ -97,19 +102,8 @@ export interface InlineContent {
   [key: string]: unknown
 }
 
-/** Caller-rendered content; passed through without Handlebars compilation. */
-export interface PreRenderedContent {
-  pre_rendered: true
-  subject?: string
-  html?: string
-  text?: string
-  title?: string
-  body?: string
-  [key: string]: unknown
-}
-
-/** One of a stored-template reference, inline Handlebars content, or pre-rendered content. */
-export type Content = TemplateContent | InlineContent | PreRenderedContent
+/** A stored template referenced by key, or inline content. */
+export type Content = TemplateContent | InlineContent
 
 /** Fields shared by every single-send request, independent of channel. */
 export interface SendRequestBase {

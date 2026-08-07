@@ -83,10 +83,11 @@ for marketing/newsletter mail.
 `content` is one of:
 
 - `{ template: "key", locale? }` — a stored template.
-- inline Handlebars fields — `subject`/`html`/`text`/`from` for email, `text` for
-  SMS, `title`/`body`/`custom` for push, `method`/`headers`/`body` for webhook;
-  variables come from `user` as `{{user.*}}`.
-- `{ pre_rendered: true, … }` — already-rendered content, sent as-is.
+- inline fields — `subject`/`html`/`text`/`from` for email, `text` for SMS,
+  `title`/`body`/`custom` for push, `method`/`headers`/`body` for webhook.
+  Variables come from `user` as `{{user.*}}` and the content is compiled as
+  Handlebars. Set the optional `pre_rendered: true` (defaults to `false`) to send
+  already-rendered content as-is with no compilation.
 
 The `channel` also narrows the required `to` field at compile time — an `email`
 send must supply `to.email`, a `text` send `to.phone`, and so on.
