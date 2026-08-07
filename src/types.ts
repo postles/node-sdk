@@ -4,8 +4,12 @@
 export type Channel = "email" | "text" | "push" | "webhook"
 
 /**
- * Delivery stream. `transactional` is exempt from `broadcast`-only suppressions;
- * `broadcast` respects them.
+ * Delivery stream, which sets the compliance/suppression scope for a send.
+ * Defaults to `transactional`.
+ * - `transactional` — 1:1 mail the recipient is expecting (receipts, password
+ *   resets, OTPs). Bypasses `broadcast`-scope unsubscribes so it always delivers.
+ * - `broadcast` — bulk/marketing mail. Respects broadcast-scope unsubscribes and
+ *   the bulk-sender compliance rules.
  */
 export type Stream = "transactional" | "broadcast"
 
@@ -118,6 +122,7 @@ export interface SendRequestBase {
   idempotency_key?: string
   /** Optional; defaults to the project's default provider for the channel. */
   provider_id?: number
+  /** Optional; defaults to `transactional`. See {@link Stream}. */
   stream?: Stream
   content: Content
   /** Template variables, exposed as the `{{user.*}}` namespace. */

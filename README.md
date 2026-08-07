@@ -30,7 +30,6 @@ const postles = new PostlesClient({
 const { message_id, idempotency_key } = await postles.transactional.send({
   idempotency_key: idempotencyKey("password-reset", user.id), // optional
   channel: "email",
-  stream: "transactional",
   to: { email: "user@example.com", locale: "en" },
   content: { template: "password-reset" },
   user: { reset_url: resetUrl },
@@ -65,6 +64,19 @@ returns it on the result (`send`) or in each item's result (`sendBatch`), so you
 can always store or correlate it. A generated key is unique per call, so it does
 **not** dedupe retries — when you need retry-safety, pass your own stable key
 (e.g. via `idempotencyKey(...)` derived from a domain event id).
+
+#### Streams
+
+`stream` is optional and defaults to `transactional`. It sets the
+compliance/suppression scope of the send:
+
+- `transactional` — 1:1 mail the recipient expects (receipts, password resets,
+  OTPs); bypasses broadcast-scope unsubscribes so it always delivers.
+- `broadcast` — bulk/marketing mail; respects broadcast-scope unsubscribes and
+  bulk-sender compliance rules.
+
+Most sends are transactional, so you can leave it off. Set `stream: "broadcast"`
+for marketing/newsletter mail.
 
 #### Content
 
