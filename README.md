@@ -165,8 +165,9 @@ npm test           # vitest
 npm run format
 ```
 
-CI (`.github/workflows/ci.yml`) runs format-check, typecheck, tests, and build on
-Node 18 and 20 for every push and pull request to `main`.
+The published SDK supports **Node 18+**. The dev/test tooling (Vitest, which
+depends on Vite) requires **Node 20.19+**, so CI runs the test suite on Node 20
+and 22 and separately verifies that the package typechecks and builds on Node 18.
 
 ## Releasing
 
