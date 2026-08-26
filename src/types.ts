@@ -76,10 +76,20 @@ export interface Recipient extends RecipientBase {
   url?: string
 }
 
+/**
+ * Which of the project's two configured SMS opt-out messages to append to a text
+ * send. `first` is the long carrier-mandated first-contact copy, `regular` the
+ * short recurring reminder, `none` (the default) appends nothing. The wording
+ * itself comes from the project's settings, never from the request.
+ */
+export type TextOptOut = "none" | "first" | "regular"
+
 /** A stored template referenced by key. */
 export interface TemplateContent {
   template: string
   locale?: string
+  /** Text sends only; ignored on other channels. See {@link TextOptOut}. */
+  opt_out?: TextOptOut
   /** Disjointness marker: template content is never pre-rendered. */
   pre_rendered?: never
 }
@@ -103,6 +113,8 @@ export interface InlineContent {
   title?: string
   body?: string
   from?: { name?: string; address?: string }
+  /** Text sends only; ignored on other channels. See {@link TextOptOut}. */
+  opt_out?: TextOptOut
   [key: string]: unknown
 }
 

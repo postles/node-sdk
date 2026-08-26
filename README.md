@@ -92,6 +92,28 @@ for marketing/newsletter mail.
 The `channel` also narrows the required `to` field at compile time — an `email`
 send must supply `to.email`, a `text` send `to.phone`, and so on.
 
+#### SMS opt-out footer
+
+Carriers require STOP instructions in text messages. API sends never add them on
+their own, so ask for one with `opt_out` on text `content`:
+
+```ts
+await postles.transactional.send({
+  channel: "text",
+  to: { phone: "+15555550123" },
+  content: { template: "otp-code", opt_out: "first" },
+  user: { code: "558213" },
+})
+```
+
+`first` appends the long carrier-mandated first-contact copy, `regular` the short
+recurring reminder, and `none` (the default) appends nothing. The wording comes
+from your project settings for the recipient's locale, so the request never carries
+opt-out text. If the project has nothing configured the message still sends, just
+without a footer. `opt_out` works with stored templates, inline content, and
+pre-rendered content, and is ignored on non-text channels. Remember that the footer
+counts toward the 160-character SMS segment limit.
+
 ### `suppressions`
 
 ```ts
