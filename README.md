@@ -153,8 +153,8 @@ const event = verifyWebhook({
 
 The timestamp freshness window bounds how long a captured delivery stays
 replayable — it is **not** strict replay protection: a delivery replayed inside
-the window still verifies. For exactly-once handling, dedupe on a
-processed-delivery id (e.g. `message_id` + `occurred_at`) in addition to this
+the window still verifies. Every body carries an `id` that is unique to the
+delivery; deliveries are at least once, so dedupe on `id` in addition to this
 check.
 
 ## Errors

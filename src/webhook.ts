@@ -84,8 +84,8 @@ const hexEquals = (a: string, b: string): boolean => {
  *
  * The freshness window bounds how long a captured delivery stays replayable; it
  * is NOT strict replay protection — a delivery replayed inside the window still
- * verifies. For exactly-once handling, dedupe on a processed-delivery id
- * (e.g. the event's `message_id` + `occurred_at`) on top of this check.
+ * verifies. For exactly-once handling, dedupe on the event's `id` on top of
+ * this check.
  */
 export const verifyWebhookSignature = (
   options: VerifyWebhookOptions,
