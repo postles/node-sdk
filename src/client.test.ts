@@ -59,11 +59,14 @@ describe("Content typing", () => {
       content: { template: "welcome" },
     } as const
 
-    // @ts-expect-error `stream` was removed; consent is `subscription_id`
-    const withStream: SendRequest = { ...base, stream: "transactional" }
-    // @ts-expect-error `not_before` was removed; the API does not schedule sends
+    const withStream: SendRequest = {
+      ...base,
+      // @ts-expect-error `stream` was removed; consent is `subscription_id`
+      stream: "transactional",
+    }
     const withNotBefore: SendRequest = {
       ...base,
+      // @ts-expect-error `not_before` was removed; the API does not schedule sends
       not_before: "2026-01-01T00:00:00Z",
     }
 
