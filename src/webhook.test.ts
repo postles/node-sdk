@@ -161,7 +161,9 @@ describe("verifyWebhook", () => {
       nowMs: NOW_MS,
     })
     expect(event.event).toBe("message.sent")
-    expect(event.message_id).toBe("msg_1")
+    // The union narrows on `event`, so a message delivery exposes `message_id`
+    // and a suppression delivery does not.
+    if (event.event === "message.sent") expect(event.message_id).toBe("msg_1")
   })
 
   it("throws on an invalid signature", () => {

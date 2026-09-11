@@ -52,6 +52,25 @@ const client = (
 ) => new PostlesClient({ baseUrl, apiKey: "sk_test_123", fetch: fetchImpl })
 
 describe("Content typing", () => {
+  it("rejects the removed stream and not_before fields at compile time", () => {
+    const base = {
+      channel: "email",
+      to: { email: "a@example.com" },
+      content: { template: "welcome" },
+    } as const
+
+    // @ts-expect-error `stream` was removed; consent is `subscription_id`
+    const withStream: SendRequest = { ...base, stream: "transactional" }
+    // @ts-expect-error `not_before` was removed; the API does not schedule sends
+    const withNotBefore: SendRequest = {
+      ...base,
+      not_before: "2026-01-01T00:00:00Z",
+    }
+
+    expect(withStream).toBeTruthy()
+    expect(withNotBefore).toBeTruthy()
+  })
+
   it("rejects mixing a template with inline / pre-rendered content at compile time", () => {
     // @ts-expect-error template content cannot also carry inline fields
     const withInline: Content = { template: "welcome", subject: "hi" }
@@ -70,7 +89,8 @@ describe("transactional.send", () => {
     const request: SendRequest = {
       idempotency_key: "app-pwreset-8f3a2c",
       channel: "email",
-      stream: "transactional",
+      external_user_id: "usr_8812",
+      subscription_id: 12,
       to: { email: "a@example.com", locale: "en", timezone: "America/Chicago" },
       content: { template: "password-reset", locale: "en" },
       user: { reset_url: "https://app.example.com/r/abc" },
@@ -102,7 +122,7 @@ describe("transactional.send", () => {
       {
         idempotency_key: "k-email-inline",
         channel: "email",
-        stream: "broadcast",
+        subscription_id: 12,
         to: { email: "a@example.com" },
         content: {
           subject: "Welcome, {{user.firstName}}",
@@ -249,19 +269,20 @@ describe("transactional.getMessage", () => {
 })
 
 describe("suppressions.delete", () => {
-  it("builds the query string and tolerates a 204 with no body", async () => {
-    const { fetch, calls } = recorder(() => new Response(null, { status: 204 }))
-    await client(fetch).suppressions.delete({
+  it("builds the query string and returns the removed count", async () => {
+    const { fetch, calls } = recorder(() => jsonResponse({ deleted: 1 }))
+    const result = await client(fetch).suppressions.delete({
       channel: "email",
       address: "a@example.com",
-      stream: "all",
+      subscription_id: 12,
     })
     const url = new URL(calls[0]!.url)
     expect(url.pathname).toBe("/v1/suppressions")
     expect(url.searchParams.get("channel")).toBe("email")
     expect(url.searchParams.get("address")).toBe("a@example.com")
-    expect(url.searchParams.get("stream")).toBe("all")
+    expect(url.searchParams.get("subscription_id")).toBe("12")
     expect(calls[0]!.method).toBe("DELETE")
+    expect(result).toEqual({ deleted: 1 })
   })
 })
 

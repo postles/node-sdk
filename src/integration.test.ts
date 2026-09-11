@@ -34,7 +34,6 @@ describe.skipIf(!baseUrl || !apiKey)("PostlesClient integration", () => {
     const accepted = await client.transactional.send({
       idempotency_key: idempotencyKey("postles-node-it", Date.now()),
       channel: "email",
-      stream: "transactional",
       provider_id: providerId,
       to: { email: testEmail },
       content: {

@@ -65,18 +65,22 @@ can always store or correlate it. A generated key is unique per call, so it does
 **not** dedupe retries — when you need retry-safety, pass your own stable key
 (e.g. via `idempotencyKey(...)` derived from a domain event id).
 
-#### Streams
+#### Consent
 
-`stream` is optional and defaults to `transactional`. It sets the
-compliance/suppression scope of the send:
+Two optional fields tie a send to the consent the recipient has already given:
 
-- `transactional` — 1:1 mail the recipient expects (receipts, password resets,
-  OTPs); bypasses broadcast-scope unsubscribes so it always delivers.
-- `broadcast` — bulk/marketing mail; respects broadcast-scope unsubscribes and
-  bulk-sender compliance rules.
+- `external_user_id` — the `external_id` of a project user. Their subscription
+  state decides whether the message goes out, and their stored profile fills in
+  any `{{user.*}}` variable the request does not set. `to` is still required.
+- `subscription_id` — the subscription topic the send belongs to. Checked
+  against the named user's preferences, or against the suppression list for the
+  `to` address when there is no user.
 
-Most sends are transactional, so you can leave it off. Set `stream: "broadcast"`
-for marketing/newsletter mail.
+An email send that names a `subscription_id` carries `List-Unsubscribe` and the
+RFC 8058 one-click headers, so mail clients show their own Unsubscribe button,
+and the `{{unsubscribeEmailUrl}}` / `{{preferencesUrl}}` template helpers
+resolve. A send with neither field is delivered without any consent check beyond
+the suppression list for the address.
 
 #### Content
 
@@ -118,12 +122,18 @@ counts toward the 160-character SMS segment limit.
 
 ```ts
 postles.suppressions.list({ address, channel })
-postles.suppressions.create({ channel, address, reason })
-postles.suppressions.delete({ channel, address, stream })
+postles.suppressions.delete({ channel, address, subscription_id })
 ```
 
-> These endpoints are typed ahead of server support and will return `404` until
-> they are available.
+`list` returns every suppression stored for the address, oldest first; an empty
+array means the address is not suppressed. A row with a `subscription_id`
+suppresses only sends naming that topic, one without suppresses the whole
+channel. `delete` returns `{ deleted }`, the number of rows removed, and clears
+every row for the address on the channel unless you scope it to one topic.
+
+> Rows are written by the platform — a hard bounce, a spam complaint, an inbound
+> STOP, or a one-click unsubscribe — never by a caller, so there is no create
+> method. Clear a row only when the recipient has asked to be contacted again.
 
 ## Webhooks
 
