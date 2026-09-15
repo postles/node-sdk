@@ -65,7 +65,6 @@ try {
   //    and returns it.
   const accepted = await postles.transactional.send({
     channel: "email",
-    stream: "transactional",
     to: { email: "sink@example.com" },
     content: { pre_rendered: true, subject: "Hello", html: "<p>Hi</p>" },
   })

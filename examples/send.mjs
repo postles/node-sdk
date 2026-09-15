@@ -28,7 +28,6 @@ const postles = new PostlesClient({ baseUrl, apiKey })
 const accepted = await postles.transactional.send({
   idempotency_key: idempotencyKey("example-send", Date.now()),
   channel: "email",
-  stream: "transactional",
   provider_id: providerId,
   to: { email: to },
   content: {

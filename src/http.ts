@@ -5,7 +5,7 @@ import { type ErrorBody } from "./types"
 export interface RequestOptions {
   method: string
   path: string
-  query?: Record<string, string | undefined>
+  query?: Record<string, string | number | undefined>
   body?: unknown
   /** Whether the endpoint is expected to return a body (false for 204 responses). */
   expectBody?: boolean
@@ -87,12 +87,12 @@ export class HttpClient {
 
   private buildUrl(
     path: string,
-    query?: Record<string, string | undefined>,
+    query?: Record<string, string | number | undefined>,
   ): string {
     const url = new URL(`${this.baseUrl}${path}`)
     if (query) {
       for (const [key, value] of Object.entries(query)) {
-        if (value !== undefined) url.searchParams.set(key, value)
+        if (value !== undefined) url.searchParams.set(key, String(value))
       }
     }
     return url.toString()

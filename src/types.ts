@@ -3,16 +3,6 @@
 /** Channels the send API accepts. */
 export type Channel = "email" | "text" | "push" | "webhook"
 
-/**
- * Delivery stream, which sets the compliance/suppression scope for a send.
- * Defaults to `transactional`.
- * - `transactional` — 1:1 mail the recipient is expecting (receipts, password
- *   resets, OTPs). Bypasses `broadcast`-scope unsubscribes so it always delivers.
- * - `broadcast` — bulk/marketing mail. Respects broadcast-scope unsubscribes and
- *   the bulk-sender compliance rules.
- */
-export type Stream = "transactional" | "broadcast"
-
 /** Send priority; defaults to `high`. */
 export type Priority = "high" | "normal" | "low"
 
@@ -132,13 +122,22 @@ export interface SendRequestBase {
   idempotency_key?: string
   /** Optional; defaults to the project's default provider for the channel. */
   provider_id?: number
-  /** Optional; defaults to `transactional`. See {@link Stream}. */
-  stream?: Stream
+  /**
+   * Optional; the `external_id` of a project user this send is for. Their
+   * subscription state decides whether the message goes out, and their stored
+   * profile fills in any `{{user.*}}` variable the request does not set. `to`
+   * is still required.
+   */
+  external_user_id?: string
+  /**
+   * Optional; the subscription topic this send belongs to. Checked against the
+   * named user's preferences, or against the suppression list for the `to`
+   * address. Required for the send to carry an unsubscribe link.
+   */
+  subscription_id?: number
   content: Content
   /** Template variables, exposed as the `{{user.*}}` namespace. */
   user?: Record<string, unknown>
-  /** Optional future send time (ISO 8601). */
-  not_before?: string
   priority?: Priority
   unsubscribe?: { preferences_url?: string }
   /** Opaque; echoed verbatim in webhook payloads. */
@@ -184,6 +183,8 @@ export interface BatchMessage {
   to: Recipient
   channel?: Channel
   provider_id?: number
+  external_user_id?: string
+  subscription_id?: number
   content?: Content
   user?: Record<string, unknown>
   priority?: Priority
@@ -199,6 +200,8 @@ export interface BatchSendRequest {
   messages: BatchMessage[]
   channel?: Channel
   provider_id?: number
+  external_user_id?: string
+  subscription_id?: number
   priority?: Priority
   content?: Content
   user?: Record<string, unknown>
@@ -249,10 +252,8 @@ export interface Message {
   project_id?: number
   idempotency_key?: string
   provider_id?: number | null
-  stream?: Stream
   priority?: Priority
   metadata?: Record<string, unknown>
-  not_before?: string | null
   sent_at?: string | null
   result?: Record<string, unknown> | null
   error?: ErrorDetail
@@ -261,52 +262,42 @@ export interface Message {
   updated_at?: string
 }
 
-export type SuppressionStream = "all" | "broadcast"
+/** Channels an address can be suppressed on; push and webhook carry no address. */
+export type SuppressionChannel = "email" | "text"
 
 export type SuppressionReason =
-  "hard_bounce" | "complaint" | "one_click" | "manual" | "api"
+  "hard_bounce" | "complaint" | "one_click" | "stop" | "manual"
 
 export interface Suppression {
-  id: number
-  project_id: number
-  channel: Channel
   /** Normalized (lowercase email / E.164 phone). */
   address: string
-  stream: SuppressionStream
+  channel: SuppressionChannel
+  /** Null when the row suppresses the whole channel for the address. */
+  subscription_id: number | null
   reason: SuppressionReason
-  source_message_id?: string | null
-  context?: Record<string, unknown>
   created_at: string
 }
 
 /** Query for listing suppressions. */
 export interface ListSuppressionsParams {
-  address?: string
-  channel?: Channel
-}
-
-/** Body for adding a suppression. `reason` is constrained to `api`/`manual`. */
-export interface CreateSuppressionRequest {
-  channel: Channel
   address: string
-  stream?: SuppressionStream
-  reason?: "api" | "manual"
-  context?: Record<string, unknown>
+  channel?: SuppressionChannel
 }
 
 /** Query for removing a suppression. */
 export interface DeleteSuppressionParams {
   address: string
-  channel: Channel
-  stream?: SuppressionStream
+  channel: SuppressionChannel
+  /** Clear only the row scoped to this topic; every row when omitted. */
+  subscription_id?: number
 }
 
-export interface ListSuppressionsResult {
-  results: Suppression[]
+export interface SuppressionDeleted {
+  deleted: number
 }
 
-/** The event type of an outbound webhook. */
-export type WebhookEventType =
+/** The event type of an outbound webhook about a message. */
+export type MessageEventType =
   | "message.sent"
   | "message.failed"
   | "message.suppressed"
@@ -315,23 +306,49 @@ export type WebhookEventType =
   | "message.delivered"
   | "message.opened"
   | "message.clicked"
-  | "suppression.created"
-  | "suppression.deleted"
 
-/** Body of an outbound webhook POST. */
-export interface WebhookEvent {
-  event: WebhookEventType
+/** The event type of an outbound webhook about a suppression. */
+export type SuppressionEventType = "suppression.created" | "suppression.deleted"
+
+/** The event type of an outbound webhook. */
+export type WebhookEventType = MessageEventType | SuppressionEventType
+
+/** Body of a `message.*` webhook POST. */
+export interface MessageDelivery {
+  event: MessageEventType
+  /** Public id of the message; usable with {@link TransactionalApi.getMessage}. */
+  message_id: string
   project_id: number
+  channel: Channel
+  to?: Recipient | null
+  metadata?: Record<string, unknown> | null
   occurred_at: string
-  /** Absent for `suppression.*` events with no source message. */
-  message_id?: string | null
-  channel?: Channel
-  /** Recipient; redaction configurable per endpoint. */
-  to?: string | Recipient
-  stream?: Stream
-  metadata?: Record<string, unknown>
-  context?: Record<string, unknown>
+  /**
+   * Event-specific detail. On `message.suppressed` it carries `reason`:
+   * `unsubscribed` when the named user opted out, `suppressed` when the address
+   * itself is on the suppression list.
+   */
+  context?: Record<string, unknown> | null
 }
+
+/** Body of a `suppression.*` webhook POST. A suppression is keyed by address, so these carry no `message_id`. */
+export interface SuppressionDelivery {
+  event: SuppressionEventType
+  project_id: number
+  channel: SuppressionChannel
+  /** The normalized address the suppression covers. */
+  address: string
+  reason: SuppressionReason
+  /** Null when the row covers the whole channel. */
+  subscription_id: number | null
+  occurred_at: string
+}
+
+/**
+ * Body of an outbound webhook POST. Narrow on `event` (or on the presence of
+ * `message_id`) to get the concrete shape.
+ */
+export type WebhookEvent = MessageDelivery | SuppressionDelivery
 
 /** The `error` member of an API error body / batch-item error. */
 export interface ErrorDetail {
