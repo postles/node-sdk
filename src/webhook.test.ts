@@ -8,6 +8,7 @@ import {
   verifyWebhookSignature,
   WebhookVerificationError,
 } from "./webhook"
+import { type WebhookEvent } from "./types"
 
 const SECRET = "whsec_test"
 const TIMESTAMP = 1_754_000_000
@@ -184,5 +185,36 @@ describe("verifyWebhook", () => {
     expect(() =>
       verifyWebhook({ payload: raw, signature, secret: SECRET, nowMs: NOW_MS }),
     ).toThrow(WebhookVerificationError)
+  })
+
+  it("exposes id on both body shapes without narrowing", () => {
+    const dedupeKey = (event: WebhookEvent): string => event.id
+
+    const bodies = [
+      JSON.stringify({
+        ...JSON.parse(body),
+        id: "01890a5d-ac96-774b-bcce-b302099a8057",
+      }),
+      JSON.stringify({
+        id: "01890a5d-ac96-774b-bcce-b302099a8058",
+        event: "suppression.created",
+        project_id: 1,
+        channel: "email",
+        address: "someone@example.com",
+        reason: "unsubscribed",
+        subscription_id: null,
+        occurred_at: "2026-08-07T00:00:00Z",
+      }),
+    ]
+
+    for (const raw of bodies) {
+      const event = verifyWebhook({
+        payload: raw,
+        signature: sign(raw, SECRET, TIMESTAMP),
+        secret: SECRET,
+        nowMs: NOW_MS,
+      })
+      expect(dedupeKey(event)).toBe(JSON.parse(raw).id)
+    }
   })
 })

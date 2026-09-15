@@ -315,6 +315,8 @@ export type WebhookEventType = MessageEventType | SuppressionEventType
 
 /** Body of a `message.*` webhook POST. */
 export interface MessageDelivery {
+  /** Unique id for this delivery. Deliveries are at least once; dedupe on it. */
+  id: string
   event: MessageEventType
   /** Public id of the message; usable with {@link TransactionalApi.getMessage}. */
   message_id: string
@@ -333,6 +335,8 @@ export interface MessageDelivery {
 
 /** Body of a `suppression.*` webhook POST. A suppression is keyed by address, so these carry no `message_id`. */
 export interface SuppressionDelivery {
+  /** Unique id for this delivery. Deliveries are at least once; dedupe on it. */
+  id: string
   event: SuppressionEventType
   project_id: number
   channel: SuppressionChannel
