@@ -29,7 +29,7 @@
     "smoke": "npm run build && node examples/smoke.mjs",
     "example:send": "npm run build && node examples/send.mjs",
     "prepublishOnly": "npm run build",
-    "publish:npm": "npm run build && npm version $npm_config_tag --no-git-tag-version && npm pack && npm publish --tag=latest --access public"
+    "publish:npm": "npm publish --provenance"
   },
   "keywords": [
     "postles",
