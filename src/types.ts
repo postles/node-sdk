@@ -121,6 +121,18 @@ export interface InlineContent {
 /** A stored template referenced by key, or inline content. */
 export type Content = TemplateContent | InlineContent
 
+/**
+ * Per-send override of open and click tracking, for a message that should not be
+ * tracked at all (a password reset, say), or one that must be tracked whatever
+ * the project is set to.
+ */
+export interface Tracking {
+  /** Embed the open pixel. Defaults to on for email and push. */
+  opens?: boolean
+  /** Rewrite links through the click redirect. Defaults to the project's link-wrap setting for the channel. */
+  clicks?: boolean
+}
+
 /** Fields shared by every single-send request, independent of channel. */
 export interface SendRequestBase {
   /**
@@ -141,6 +153,8 @@ export interface SendRequestBase {
   not_before?: string
   priority?: Priority
   unsubscribe?: { preferences_url?: string }
+  /** Per-send override of open and click tracking. See {@link Tracking}. */
+  tracking?: Tracking
   /** Opaque; echoed verbatim in webhook payloads. */
   metadata?: Record<string, unknown>
 }
@@ -188,6 +202,8 @@ export interface BatchMessage {
   user?: Record<string, unknown>
   priority?: Priority
   unsubscribe?: { preferences_url?: string }
+  /** Per-send override of open and click tracking. See {@link Tracking}. */
+  tracking?: Tracking
   metadata?: Record<string, unknown>
 }
 
@@ -204,6 +220,8 @@ export interface BatchSendRequest {
   user?: Record<string, unknown>
   metadata?: Record<string, unknown>
   unsubscribe?: { preferences_url?: string }
+  /** Per-send override of open and click tracking. See {@link Tracking}. */
+  tracking?: Tracking
 }
 
 /** Response body for a single send. */

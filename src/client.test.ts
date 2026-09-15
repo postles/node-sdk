@@ -111,6 +111,7 @@ describe("transactional.send", () => {
         },
         user: { firstName: "Sam" },
         unsubscribe: { preferences_url: "https://app.example.com/prefs" },
+        tracking: { opens: true, clicks: true },
       },
       {
         idempotency_key: "k-text-pre",
@@ -206,14 +207,23 @@ describe("transactional.sendBatch", () => {
     const result = await client(fetch).transactional.sendBatch({
       channel: "email",
       content: { template: "digest" },
+      tracking: { opens: true, clicks: true },
       messages: [
         { idempotency_key: "a", to: { email: "a@example.com" } },
-        { idempotency_key: "b", to: { email: "b@example.com" } },
+        {
+          idempotency_key: "b",
+          to: { email: "b@example.com" },
+          tracking: { clicks: false },
+        },
       ],
     })
 
     expect(calls[0]!.url).toBe("https://api.postles.com/v1/send/batch")
     expect(calls[0]!.method).toBe("POST")
+    expect(calls[0]!.body).toMatchObject({
+      tracking: { opens: true, clicks: true },
+      messages: [{ idempotency_key: "a" }, { tracking: { clicks: false } }],
+    })
     expect(result.results).toHaveLength(2)
     expect(result.results[1]!.status).toBe("rejected")
   })
