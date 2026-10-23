@@ -137,7 +137,10 @@ every row for the address on the channel unless you scope it to one topic.
 
 ### `globals`
 
-Store project-wide JSON for send templates. All methods use your secret API key.
+Store project-wide JSON for send templates through the Admin API. All methods
+use your secret API key. The Admin base URL defaults to the sibling `admin` path
+of `baseUrl`: `/api/v1` uses `/api/admin`, and `/v1` uses `/admin`. Set the optional
+`adminBaseUrl` on `PostlesClient` if it is hosted elsewhere.
 
 ```ts
 await postles.globals.set("launch", { title: "Advent is here", live: true })

@@ -7,6 +7,7 @@
 - `globals.set`, `globals.get`, `globals.list` and `globals.delete` for
   project-scoped JSON used by send templates.
 - Exported `GlobalsApi`, `GlobalData` and `GlobalDataSummary` types.
+- Optional `adminBaseUrl` for global-data operations on a separate Admin API.
 
 ## 0.1.0
 

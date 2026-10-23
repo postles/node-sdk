@@ -15,6 +15,11 @@ export class PostlesClient {
     const http = new HttpClient(config)
     this.transactional = new TransactionalApi(http)
     this.suppressions = new SuppressionsApi(http)
-    this.globals = new GlobalsApi(http)
+    const adminBaseUrl =
+      config.adminBaseUrl ??
+      new URL("../admin", `${config.baseUrl.replace(/\/+$/, "")}/`).toString()
+    this.globals = new GlobalsApi(
+      new HttpClient({ ...config, baseUrl: adminBaseUrl }),
+    )
   }
 }

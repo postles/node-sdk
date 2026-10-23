@@ -321,7 +321,7 @@ describe("globals", () => {
       expect(await c.globals.set("launch", data)).toEqual({ ...summary, data })
       expect(calls.at(-1)).toMatchObject({
         method: "PUT",
-        url: "https://api.postles.com/v1/globals/launch",
+        url: "https://api.postles.com/admin/globals/launch",
         body: { data },
         headers: {
           authorization: "Bearer sk_test_123",
@@ -331,6 +331,17 @@ describe("globals", () => {
       status = 200
     }
     expect(calls).toHaveLength(values.length)
+
+    const custom = new PostlesClient({
+      baseUrl: "https://api.postles.com/api/v1/",
+      adminBaseUrl: "https://admin.example.com/api/admin/",
+      apiKey: "sk_test_123",
+      fetch,
+    })
+    await custom.globals.set("launch", {})
+    expect(calls.at(-1)!.url).toBe(
+      "https://admin.example.com/api/admin/globals/launch",
+    )
 
     for (const status of [413, 422]) {
       const c = failing(status, "Invalid global data")
@@ -349,7 +360,7 @@ describe("globals", () => {
     expect(calls).toHaveLength(1)
     expect(calls[0]).toMatchObject({
       method: "GET",
-      url: "https://api.postles.com/v1/globals/launch",
+      url: "https://api.postles.com/admin/globals/launch",
       body: undefined,
     })
 
@@ -363,7 +374,7 @@ describe("globals", () => {
       PostlesValidationError,
     )
     expect(invalid.calls[0]!.url).toBe(
-      "https://api.postles.com/v1/globals/launch%2Ftitle",
+      "https://api.postles.com/admin/globals/launch%2Ftitle",
     )
   })
 
@@ -373,9 +384,11 @@ describe("globals", () => {
     expect(calls).toHaveLength(1)
     expect(calls[0]).toMatchObject({
       method: "GET",
-      url: "https://api.postles.com/v1/globals",
+      url: "https://api.postles.com/admin/globals",
       body: undefined,
     })
+    await client(fetch, "https://api.postles.com/api/v1/").globals.list()
+    expect(calls.at(-1)!.url).toBe("https://api.postles.com/api/admin/globals")
 
     for (const status of [401, 403]) {
       const c = failing(status, "Bad key")
@@ -389,7 +402,7 @@ describe("globals", () => {
     expect(calls).toHaveLength(1)
     expect(calls[0]).toMatchObject({
       method: "DELETE",
-      url: "https://api.postles.com/v1/globals/launch",
+      url: "https://api.postles.com/admin/globals/launch",
       body: undefined,
     })
 
