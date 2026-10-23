@@ -299,6 +299,120 @@ describe("suppressions.delete", () => {
   })
 })
 
+describe("globals", () => {
+  const summary = {
+    key: "launch",
+    created_at: "2026-10-23T12:00:00.000Z",
+    updated_at: "2026-10-23T13:00:00.000Z",
+  }
+  const failing = (status: number, message: string) =>
+    client(recorder(() => jsonResponse({ error: message }, status)).fetch)
+
+  it("sets any JSON value for create and replace and maps validation errors", async () => {
+    let status = 201
+    const { fetch, calls } = recorder(({ body }) => {
+      const { data } = body as { data: unknown }
+      return jsonResponse({ ...summary, data }, status)
+    })
+    const c = client(fetch)
+    const values = [{ title: "Advent" }, ["one", 2], "hello", 42, false, null]
+
+    for (const data of values) {
+      expect(await c.globals.set("launch", data)).toEqual({ ...summary, data })
+      expect(calls.at(-1)).toMatchObject({
+        method: "PUT",
+        url: "https://api.postles.com/admin/globals/launch",
+        body: { data },
+        headers: {
+          authorization: "Bearer sk_test_123",
+          "content-type": "application/json",
+        },
+      })
+      status = 200
+    }
+    expect(calls).toHaveLength(values.length)
+
+    const custom = new PostlesClient({
+      baseUrl: "https://api.postles.com/api/v1/",
+      adminBaseUrl: "https://admin.example.com/api/admin/",
+      apiKey: "sk_test_123",
+      fetch,
+    })
+    await custom.globals.set("launch", {})
+    expect(calls.at(-1)!.url).toBe(
+      "https://admin.example.com/api/admin/globals/launch",
+    )
+
+    for (const status of [413, 422]) {
+      const c = failing(status, "Invalid global data")
+      await expect(c.globals.set("launch", {})).rejects.toMatchObject({
+        name: "PostlesValidationError",
+        status,
+        message: "Invalid global data",
+      })
+    }
+  })
+
+  it("gets a key with its data and maps missing or invalid keys", async () => {
+    const global = { ...summary, data: { title: "Advent" } }
+    const { fetch, calls } = recorder(() => jsonResponse(global))
+    expect(await client(fetch).globals.get("launch")).toEqual(global)
+    expect(calls).toHaveLength(1)
+    expect(calls[0]).toMatchObject({
+      method: "GET",
+      url: "https://api.postles.com/admin/globals/launch",
+      body: undefined,
+    })
+
+    const missing = failing(404, "Not found")
+    await expect(missing.globals.get("missing")).rejects.toBeInstanceOf(
+      PostlesNotFoundError,
+    )
+    const invalid = recorder(() => jsonResponse({ error: "Invalid key" }, 422))
+    const c = client(invalid.fetch)
+    await expect(c.globals.get("launch/title")).rejects.toBeInstanceOf(
+      PostlesValidationError,
+    )
+    expect(invalid.calls[0]!.url).toBe(
+      "https://api.postles.com/admin/globals/launch%2Ftitle",
+    )
+  })
+
+  it("lists summaries without data and maps authentication errors", async () => {
+    const { fetch, calls } = recorder(() => jsonResponse([summary]))
+    expect(await client(fetch).globals.list()).toEqual([summary])
+    expect(calls).toHaveLength(1)
+    expect(calls[0]).toMatchObject({
+      method: "GET",
+      url: "https://api.postles.com/admin/globals",
+      body: undefined,
+    })
+    await client(fetch, "https://api.postles.com/api/v1/").globals.list()
+    expect(calls.at(-1)!.url).toBe("https://api.postles.com/api/admin/globals")
+
+    for (const status of [401, 403]) {
+      const c = failing(status, "Bad key")
+      await expect(c.globals.list()).rejects.toBeInstanceOf(PostlesAuthError)
+    }
+  })
+
+  it("deletes a key with an empty 204 response and maps missing keys", async () => {
+    const { fetch, calls } = recorder(() => new Response(null, { status: 204 }))
+    expect(await client(fetch).globals.delete("launch")).toBeUndefined()
+    expect(calls).toHaveLength(1)
+    expect(calls[0]).toMatchObject({
+      method: "DELETE",
+      url: "https://api.postles.com/admin/globals/launch",
+      body: undefined,
+    })
+
+    const c = failing(404, "Not found")
+    await expect(c.globals.delete("missing")).rejects.toBeInstanceOf(
+      PostlesNotFoundError,
+    )
+  })
+})
+
 describe("error mapping", () => {
   const failing = (
     status: number,

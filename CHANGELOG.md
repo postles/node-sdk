@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0
+
+### Added
+
+- `globals.set`, `globals.get`, `globals.list` and `globals.delete` for
+  project-scoped JSON used by send templates.
+- Exported `GlobalsApi`, `GlobalData` and `GlobalDataSummary` types.
+- Optional `adminBaseUrl` for global-data operations on a separate Admin API.
+
 ## 0.1.0
 
 Brings the SDK back in line with the send API. The removed fields were typed

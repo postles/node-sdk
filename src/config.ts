@@ -7,6 +7,7 @@ export interface PostlesConfig {
    * `https://api.postles.com/v1`. A trailing slash is tolerated.
    */
   baseUrl: string
+  adminBaseUrl?: string
   /**
    * Secret API key. Sent as `Authorization: Bearer <apiKey>`; it identifies the
    * acting project.

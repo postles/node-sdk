@@ -314,6 +314,16 @@ export interface SuppressionDeleted {
   deleted: number
 }
 
+export interface GlobalDataSummary {
+  key: string
+  created_at: string
+  updated_at: string
+}
+
+export interface GlobalData extends GlobalDataSummary {
+  data: unknown
+}
+
 /** The event type of an outbound webhook about a message. */
 export type MessageEventType =
   | "message.sent"
