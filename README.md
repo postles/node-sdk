@@ -161,7 +161,7 @@ exist even when used with a fallback helper. Missing keys fail sends and are
 checked at campaign launch and by the transactional API before enqueueing.
 Deleting a key does not check whether templates still reference it.
 
-See the [global data guide](https://docs.postles.app/how-to/campaigns/global-data/)
+See the [global data guide](https://docs.postles.app/how-to/settings/global-data/)
 for block examples and scheduled updates from an external job.
 
 ## Webhooks
