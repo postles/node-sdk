@@ -135,6 +135,35 @@ every row for the address on the channel unless you scope it to one topic.
 > STOP, or a one-click unsubscribe — never by a caller, so there is no create
 > method. Clear a row only when the recipient has asked to be contacted again.
 
+### `globals`
+
+Store project-wide JSON for send templates. All methods use your secret API key.
+
+```ts
+await postles.globals.set("launch", { title: "Advent is here", live: true })
+const launch = await postles.globals.get("launch")
+const keys = await postles.globals.list()
+await postles.globals.delete("launch")
+```
+
+`set` creates or fully replaces a value. `set` and `get` return
+`{ key, data, created_at, updated_at }`; `list` returns an array of
+`{ key, created_at, updated_at }` without the data. `delete` resolves to `undefined`
+and throws `PostlesNotFoundError` if the key does not exist.
+
+Data can be any JSON value, up to 32 KB (32,768 UTF-8 bytes when serialized).
+Keys match `^[a-z][a-z0-9_]{0,63}$`. Values never expire until deleted; the 24-hour
+cache refreshes immediately on writes.
+
+Use `{{global.launch.title}}` in a send template, or
+`{{@root.global.launch.title}}` inside `#each` and `#with`. A referenced key must
+exist even when used with a fallback helper. Missing keys fail sends and are
+checked at campaign launch and by the transactional API before enqueueing.
+Deleting a key does not check whether templates still reference it.
+
+See the [global data guide](https://docs.postles.app/how-to/campaigns/global-data/)
+for block examples and scheduled updates from an external job.
+
 ## Webhooks
 
 Verify the `X-Postles-Signature` header against the **raw** request body (before

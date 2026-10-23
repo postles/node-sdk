@@ -1,6 +1,7 @@
 export { PostlesClient } from "./client"
 export { TransactionalApi } from "./resources/transactional"
 export { SuppressionsApi } from "./resources/suppressions"
+export { GlobalsApi } from "./resources/globals"
 export { DEFAULT_TIMEOUT_MS, type PostlesConfig } from "./config"
 export {
   PostlesAuthError,
