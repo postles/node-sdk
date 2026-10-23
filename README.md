@@ -155,8 +155,8 @@ await postles.globals.delete("launch")
 and throws `PostlesNotFoundError` if the key does not exist.
 
 Data can be any JSON value, up to 32 KB (32,768 UTF-8 bytes when serialized).
-Keys match `^[a-z][a-z0-9_]{0,63}$`. Values never expire until deleted; the 24-hour
-cache refreshes immediately on writes.
+Keys match `^[a-z][a-z0-9_]{0,63}$`. Changes take effect for sends immediately.
+Data is kept until you replace or delete it.
 
 Use `{{global.launch.title}}` in a send template, or
 `{{@root.global.launch.title}}` inside `#each` and `#with`. A referenced key must
